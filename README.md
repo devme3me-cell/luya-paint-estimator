@@ -11,7 +11,7 @@ npm install
 npm run dev
 ```
 
-建置後的靜態站會自動部署到 GitHub Pages：
+建置後的靜態站部署於 GitHub Pages：
 
 `https://devme3me-cell.github.io/luya-paint-estimator/`
 
