@@ -1,6 +1,6 @@
 import type { EstimateInput, EstimateResult } from './estimate'
 import { money } from './estimate'
-import { PAINT_OPTIONS } from './pricing'
+import { AREA_FACTOR, PAINT_OPTIONS, type Quality } from './pricing'
 import { contact } from './contact'
 import { liff, liffState, miniAppUrl } from './liffApp'
 
@@ -17,12 +17,102 @@ type TextMessage = {
 
 export type LineShareMessage = FlexMessage | TextMessage
 
+const GOLD = '#C4A574'
+const GOLD_DEEP = '#A68552'
+const INK = '#141210'
+const CREAM = '#F7F3EC'
+const STONE = '#EFE8DC'
+const MUTED = '#8A8174'
+const LOGO_URL = 'https://devme3me-cell.github.io/luya-paint-estimator/luya-logo.png'
+
 function paintLabel(input: EstimateInput): string {
   return PAINT_OPTIONS.find((p) => p.key === input.paint)?.name ?? input.paint
 }
 
 function regionLabel(input: EstimateInput): string {
   return input.region === 'north' ? '北部' : input.region === 'south' ? '南部' : '中部'
+}
+
+function qualityLabel(quality: Quality): string {
+  if (quality === 'economy') return '經濟'
+  if (quality === 'premium') return '精緻'
+  return '標準'
+}
+
+function workPing(input: EstimateInput): number {
+  const factor = input.includeCeiling ? AREA_FACTOR.wallsAndCeiling : AREA_FACTOR.wallsOnly
+  return Math.round(input.floorPing * factor * 10) / 10
+}
+
+function chip(label: string, value: string) {
+  return {
+    type: 'box',
+    layout: 'vertical',
+    flex: 1,
+    paddingAll: '10px',
+    cornerRadius: '10px',
+    backgroundColor: STONE,
+    contents: [
+      {
+        type: 'text',
+        text: label,
+        size: 'xxs',
+        color: GOLD_DEEP,
+        weight: 'bold',
+      },
+      {
+        type: 'text',
+        text: value,
+        size: 'sm',
+        weight: 'bold',
+        color: INK,
+        wrap: true,
+        margin: 'xs',
+      },
+    ],
+  }
+}
+
+function itemRow(label: string, amount: string) {
+  return {
+    type: 'box',
+    layout: 'horizontal',
+    spacing: 'md',
+    paddingTop: '10px',
+    paddingBottom: '10px',
+    contents: [
+      {
+        type: 'box',
+        layout: 'vertical',
+        width: '3px',
+        height: '28px',
+        backgroundColor: GOLD,
+        cornerRadius: '2px',
+        flex: 0,
+        contents: [{ type: 'filler' }],
+      },
+      {
+        type: 'text',
+        text: label,
+        size: 'sm',
+        color: MUTED,
+        flex: 5,
+        wrap: true,
+        gravity: 'center',
+      },
+      {
+        type: 'text',
+        text: amount,
+        size: 'sm',
+        align: 'end',
+        weight: 'bold',
+        color: INK,
+        flex: 4,
+        gravity: 'center',
+        wrap: true,
+      },
+    ],
+  }
 }
 
 export function quoteText(input: EstimateInput, result: EstimateResult): string {
@@ -44,105 +134,270 @@ export function quoteText(input: EstimateInput, result: EstimateResult): string 
 }
 
 export function quoteFlex(input: EstimateInput, result: EstimateResult): FlexMessage {
-  const itemRows = result.lines.slice(0, 6).map((line) => ({
-    type: 'box',
-    layout: 'horizontal',
-    contents: [
-      {
-        type: 'text',
-        text: line.label,
-        size: 'sm',
-        color: '#6E675C',
-        flex: 5,
-        wrap: true,
-      },
-      {
-        type: 'text',
-        text: money(line.amount),
-        size: 'sm',
-        align: 'end',
-        flex: 4,
-        weight: 'bold',
-      },
-    ],
-  }))
+  const items = result.lines.slice(0, 6)
+  const extra = result.lines.length - items.length
+  const itemRows: Record<string, unknown>[] = []
+  items.forEach((line, index) => {
+    itemRows.push(itemRow(line.label, money(line.amount)))
+    if (index < items.length - 1 || extra > 0) {
+      itemRows.push({
+        type: 'separator',
+        color: '#E4DDD2',
+      })
+    }
+  })
+  if (extra > 0) {
+    itemRows.push(itemRow(`其他項目 ×${extra}`, '見計算機'))
+  }
 
   return {
     type: 'flex',
-    altText: `${contact.brandZh}油漆估價 ${money(result.mid)}`,
+    altText: `${contact.brandZh}｜油漆估價 ${money(result.mid)}`,
     contents: {
       type: 'bubble',
       size: 'mega',
+      action: {
+        type: 'uri',
+        label: '開啟估價',
+        uri: miniAppUrl(),
+      },
       header: {
         type: 'box',
         layout: 'vertical',
-        backgroundColor: '#141210',
-        paddingAll: '16px',
+        paddingAll: '18px',
+        paddingBottom: '14px',
+        background: {
+          type: 'linearGradient',
+          angle: '135deg',
+          startColor: '#1C1916',
+          endColor: '#0E0E0E',
+        },
         contents: [
           {
-            type: 'text',
-            text: contact.brandZh,
-            color: '#C4A574',
-            size: 'xs',
-            weight: 'bold',
-            letterSpacing: '0.12em',
+            type: 'box',
+            layout: 'horizontal',
+            spacing: 'md',
+            contents: [
+              {
+                type: 'image',
+                url: LOGO_URL,
+                size: '40px',
+                aspectRatio: '1:1',
+                aspectMode: 'cover',
+                flex: 0,
+              },
+              {
+                type: 'box',
+                layout: 'vertical',
+                flex: 1,
+                justifyContent: 'center',
+                contents: [
+                  {
+                    type: 'text',
+                    text: contact.brandEn,
+                    size: 'xxs',
+                    color: GOLD,
+                    weight: 'bold',
+                    letterSpacing: '0.18em',
+                  },
+                  {
+                    type: 'text',
+                    text: contact.brandZh,
+                    size: 'lg',
+                    color: '#F5F0E8',
+                    weight: 'bold',
+                    margin: 'xs',
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'box',
+            layout: 'vertical',
+            margin: 'lg',
+            height: '2px',
+            width: '42px',
+            backgroundColor: GOLD,
+            contents: [{ type: 'filler' }],
           },
           {
             type: 'text',
-            text: '油漆估價結果',
-            color: '#F5F0E8',
-            size: 'lg',
+            text: contact.tagline,
+            size: 'xxs',
+            color: '#B8AFA3',
+            margin: 'md',
+            wrap: true,
+          },
+        ],
+      },
+      hero: {
+        type: 'box',
+        layout: 'vertical',
+        paddingAll: '20px',
+        paddingTop: '8px',
+        background: {
+          type: 'linearGradient',
+          angle: '165deg',
+          startColor: '#1A1714',
+          endColor: '#0E0E0E',
+        },
+        contents: [
+          {
+            type: 'text',
+            text: 'PREVIEW QUOTE',
+            size: 'xxs',
+            color: GOLD,
             weight: 'bold',
+            letterSpacing: '0.22em',
+          },
+          {
+            type: 'text',
+            text: '預估總價',
+            size: 'sm',
+            color: '#D9D2C7',
             margin: 'sm',
+          },
+          {
+            type: 'text',
+            text: money(result.mid),
+            size: 'xxl',
+            weight: 'bold',
+            color: '#F5F0E8',
+            margin: 'xs',
+            wrap: true,
+          },
+          {
+            type: 'text',
+            text: `參考區間  ${money(result.low)}  –  ${money(result.high)}`,
+            size: 'xs',
+            color: GOLD,
+            margin: 'sm',
+            wrap: true,
           },
         ],
       },
       body: {
         type: 'box',
         layout: 'vertical',
-        spacing: 'sm',
-        paddingAll: '16px',
+        paddingAll: '18px',
+        backgroundColor: CREAM,
+        spacing: 'md',
         contents: [
           {
-            type: 'text',
-            text: money(result.mid),
-            size: 'xl',
-            weight: 'bold',
-            color: '#141210',
+            type: 'box',
+            layout: 'horizontal',
+            spacing: 'sm',
+            contents: [
+              chip('地坪', `${input.floorPing} 坪`),
+              chip('施作', input.includeCeiling ? '牆面＋天花' : '僅牆面'),
+            ],
+          },
+          {
+            type: 'box',
+            layout: 'horizontal',
+            spacing: 'sm',
+            contents: [
+              chip('漆種', paintLabel(input)),
+              chip('地區／檔位', `${regionLabel(input)} · ${qualityLabel(input.quality)}`),
+            ],
           },
           {
             type: 'text',
-            text: `參考區間 ${money(result.low)} – ${money(result.high)}`,
-            size: 'sm',
-            color: '#6E675C',
-          },
-          {
-            type: 'text',
-            text: `地坪 ${input.floorPing} 坪 · ${input.includeCeiling ? '牆面＋天花板' : '僅牆面'} · ${paintLabel(input)} · ${regionLabel(input)}`,
-            size: 'xs',
-            color: '#6E675C',
+            text: `施作約 ${workPing(input)} 坪（依地坪換算）`,
+            size: 'xxs',
+            color: MUTED,
             wrap: true,
-            margin: 'md',
           },
-          { type: 'separator', margin: 'md' },
-          ...itemRows,
+          {
+            type: 'box',
+            layout: 'vertical',
+            margin: 'md',
+            contents: [
+              {
+                type: 'text',
+                text: '費用明細',
+                size: 'sm',
+                weight: 'bold',
+                color: INK,
+              },
+              ...itemRows,
+              {
+                type: 'box',
+                layout: 'horizontal',
+                margin: 'md',
+                paddingAll: '12px',
+                cornerRadius: '10px',
+                backgroundColor: INK,
+                contents: [
+                  {
+                    type: 'text',
+                    text: '合計',
+                    size: 'sm',
+                    color: GOLD,
+                    weight: 'bold',
+                    flex: 1,
+                  },
+                  {
+                    type: 'text',
+                    text: money(result.subtotal),
+                    size: 'md',
+                    color: '#F5F0E8',
+                    weight: 'bold',
+                    align: 'end',
+                    flex: 2,
+                    wrap: true,
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'text',
+            text: '實際報價需現場丈量與牆況評估後確認。',
+            size: 'xxs',
+            color: MUTED,
+            wrap: true,
+            margin: 'sm',
+          },
         ],
       },
       footer: {
         type: 'box',
         layout: 'vertical',
         spacing: 'sm',
-        paddingAll: '12px',
+        paddingAll: '14px',
+        backgroundColor: '#0E0E0E',
         contents: [
           {
             type: 'button',
             style: 'primary',
-            color: '#141210',
+            height: 'sm',
+            color: GOLD,
             action: {
               type: 'uri',
               label: '開啟估價計算機',
               uri: miniAppUrl(),
             },
+          },
+          {
+            type: 'button',
+            style: 'secondary',
+            height: 'sm',
+            color: '#2A2622',
+            action: {
+              type: 'uri',
+              label: '聯繫祿亞空間',
+              uri: contact.lineUrl,
+            },
+          },
+          {
+            type: 'text',
+            text: 'Powered by Nestify',
+            size: 'xxs',
+            color: '#6E675C',
+            align: 'center',
+            margin: 'md',
           },
         ],
       },
