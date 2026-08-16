@@ -11,13 +11,10 @@ npm install
 npm run dev
 ```
 
-建置後的靜態站部署於 GitHub Pages：
+**LINE Mini App：** https://miniapp.line.me/2011129407-qwlCLl3X  
+**GitHub Pages（Endpoint URL）：** https://devme3me-cell.github.io/luya-paint-estimator/
 
-`https://devme3me-cell.github.io/luya-paint-estimator/`
-
-LINE Mini App 的 Endpoint URL 請填這個網址（結尾保留 `/`）。
-
-未填 `VITE_LIFF_ID` 時仍可當一般網頁使用；填入後才會啟用 LINE 登入、分享估價、傳送到聊天。
+請在 LINE Developers Console 把該環境的 **Endpoint URL** 設成 GitHub Pages 網址（結尾保留 `/`）。
 
 ## 上架 LINE Mini App
 

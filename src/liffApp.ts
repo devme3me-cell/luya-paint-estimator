@@ -1,6 +1,9 @@
 import liff from '@line/liff'
 import { contact } from './contact'
 
+/** LINE Mini App LIFF ID：https://miniapp.line.me/2011129407-qwlCLl3X */
+export const DEFAULT_LIFF_ID = '2011129407-qwlCLl3X'
+
 export type LiffProfile = {
   displayName: string
   userId: string
@@ -21,7 +24,7 @@ export const liffState = {
 }
 
 export async function bootLiff(): Promise<void> {
-  const liffId = import.meta.env.VITE_LIFF_ID?.trim() ?? ''
+  const liffId = import.meta.env.VITE_LIFF_ID?.trim() || DEFAULT_LIFF_ID
   liffState.liffId = liffId
 
   if (!liffId) {
