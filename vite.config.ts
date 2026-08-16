@@ -1,0 +1,11 @@
+import { defineConfig } from 'vite'
+
+export default defineConfig({
+  base: './',
+  preview: {
+    allowedHosts: true,
+  },
+  server: {
+    allowedHosts: true,
+  },
+})
