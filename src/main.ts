@@ -196,7 +196,6 @@ function render(): void {
     </footer>
   `
 
-  bind()
   if (showingResult) {
     document.getElementById('results')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
@@ -363,56 +362,66 @@ function readForm(): void {
 }
 
 function bind(): void {
-  document.querySelector('[data-next]')?.addEventListener('click', () => {
-    readForm()
-    if (step === 1 && state.floorPing <= 0) {
-      setStatus('請輸入有效的地坪坪數')
+  app.addEventListener('click', (event) => {
+    const target = (event.target as HTMLElement | null)?.closest<HTMLElement>(
+      '[data-next],[data-prev],[data-calc],[data-restart],[data-close],[data-consult],[data-share],[data-send]',
+    )
+    if (!target) return
+
+    if (target.hasAttribute('data-next')) {
+      readForm()
+      if (step === 1 && state.floorPing <= 0) {
+        setStatus('請輸入有效的地坪坪數')
+        return
+      }
+      step = Math.min(4, step + 1)
+      render()
       return
     }
-    step = Math.min(4, step + 1)
-    render()
-  })
 
-  document.querySelector('[data-prev]')?.addEventListener('click', () => {
-    readForm()
-    step = Math.max(1, step - 1)
-    render()
-  })
-
-  document.querySelector('[data-calc]')?.addEventListener('click', () => {
-    readForm()
-    step = 4
-    render()
-  })
-
-  document.querySelector('[data-restart]')?.addEventListener('click', () => {
-    step = 1
-    statusMsg = ''
-    render()
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  })
-
-  document.querySelector('[data-close]')?.addEventListener('click', () => closeMiniApp())
-
-  document.querySelector('[data-consult]')?.addEventListener('click', () => {
-    void openOfficialLine()
-  })
-
-  document.querySelector('[data-share]')?.addEventListener('click', async () => {
-    try {
-      const msg = await shareQuote(state, estimate(state))
-      setStatus(msg)
-    } catch (err) {
-      setStatus(err instanceof Error ? err.message : '分享失敗')
+    if (target.hasAttribute('data-prev')) {
+      readForm()
+      step = Math.max(1, step - 1)
+      render()
+      return
     }
-  })
 
-  document.querySelector('[data-send]')?.addEventListener('click', async () => {
-    try {
-      const msg = await sendQuoteToChat(state, estimate(state))
-      setStatus(msg)
-    } catch (err) {
-      setStatus(err instanceof Error ? err.message : '傳送失敗')
+    if (target.hasAttribute('data-calc')) {
+      readForm()
+      step = 4
+      render()
+      return
+    }
+
+    if (target.hasAttribute('data-restart')) {
+      step = 1
+      statusMsg = ''
+      render()
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      return
+    }
+
+    if (target.hasAttribute('data-close')) {
+      closeMiniApp()
+      return
+    }
+
+    if (target.hasAttribute('data-consult')) {
+      void openOfficialLine()
+      return
+    }
+
+    if (target.hasAttribute('data-share')) {
+      void shareQuote(state, estimate(state))
+        .then(setStatus)
+        .catch((err) => setStatus(err instanceof Error ? err.message : '分享失敗'))
+      return
+    }
+
+    if (target.hasAttribute('data-send')) {
+      void sendQuoteToChat(state, estimate(state))
+        .then(setStatus)
+        .catch((err) => setStatus(err instanceof Error ? err.message : '傳送失敗'))
     }
   })
 }
@@ -428,6 +437,7 @@ function renderBoot(): void {
 }
 
 async function start(): Promise<void> {
+  bind()
   renderBoot()
   await bootLiff()
   if (liffState.error) statusMsg = `LIFF：${liffState.error}`
